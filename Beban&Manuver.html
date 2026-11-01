@@ -1,0 +1,1775 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pencatatan Beban & Manuver GITET 500 kV Gandul</title>
+    <!-- Favicon / Logo Tab -->
+    <link rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/bolt.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        plnBlue: '#1e3a8a',
+                        plnSky: '#0284c7',
+                        plnYellow: '#eab308',
+                        plnDark: '#0f172a'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-area, #printable-area * { visibility: visible; }
+            #printable-area { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 20px; background: white; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- HEADER PLN -->
+    <header class="bg-plnBlue text-white shadow-lg sticky top-0 z-40 border-b-4 border-plnYellow no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-plnYellow text-plnDark p-3 rounded-xl font-bold flex items-center justify-center shadow">
+                    <i class="fa-solid fa-bolt text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-bold bg-yellow-400 text-blue-950 px-2 py-0.5 rounded uppercase">PT PLN (Persero)</span>
+                        <span class="text-[10px] text-blue-200 font-medium">GITET 500 kV GANDUL</span>
+                    </div>
+                    <h1 class="text-lg sm:text-xl font-black tracking-tight">Sistem Operasi & Pemeliharaan</h1>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex flex-wrap gap-1 bg-blue-950/80 p-1.5 rounded-xl border border-blue-800">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-plnYellow text-plnDark shadow transition flex items-center gap-1.5"><i class="fa-solid fa-chart-pie"></i> Dashboard</button>
+                <button onclick="switchTab('input')" id="nav-input" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:bg-blue-800 transition flex items-center gap-1.5"><i class="fa-solid fa-pen-to-square"></i> Input Beban</button>
+                <button onclick="switchTab('jam10')" id="nav-jam10" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:bg-blue-800 transition">Jam 10.00</button>
+                <button onclick="switchTab('jam14')" id="nav-jam14" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:bg-blue-800 transition">Jam 14.00</button>
+                <button onclick="switchTab('jam19')" id="nav-jam19" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:bg-blue-800 transition">Jam 19.00</button>
+                <button onclick="switchTab('manuver')" id="nav-manuver" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:bg-blue-800 transition flex items-center gap-1.5"><i class="fa-solid fa-shuffle"></i> Menu Manuver</button>
+                <button onclick="switchTab('riwayat-manuver')" id="nav-riwayat-manuver" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:bg-blue-800 transition flex items-center gap-1.5"><i class="fa-solid fa-list-check"></i> Riwayat Manuver</button>
+                <button onclick="switchTab('trend')" id="nav-trend" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white hover:bg-blue-800 transition flex items-center gap-1.5"><i class="fa-solid fa-chart-line"></i> Trend Bulanan</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed top-5 right-5 z-50 transform translate-x-full transition-transform duration-300 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
+        <i class="fa-solid fa-circle-check text-plnYellow text-xl"></i>
+        <div>
+            <h4 class="font-bold text-sm">Informasi Sistem</h4>
+            <p id="toast-msg" class="text-xs text-slate-300"></p>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-6">
+
+        <!-- DASHBOARD TAB -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <div class="bg-gradient-to-r from-plnBlue via-blue-800 to-indigo-900 p-6 sm:p-8 rounded-3xl text-white shadow-lg flex flex-col md:flex-row justify-between items-center gap-6 border-l-8 border-plnYellow">
+                <div class="space-y-2">
+                    <span class="bg-blue-950 text-plnYellow text-xs font-bold px-3 py-1 rounded-full border border-blue-700">GITET 500 kV GANDUL</span>
+                    <h2 class="text-2xl sm:text-3xl font-black">Command Center Operasi & Pemeliharaan</h2>
+                    <p class="text-blue-100 text-xs sm:text-sm max-w-xl">Gerbang utama keandalan sistem kelistrikan, memantau pembebanan puncak, manuver peralatan, dan arsip data gardu induk secara terintegrasi.</p>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                    <button onclick="switchTab('input')" class="px-5 py-3 bg-plnYellow text-plnDark hover:bg-yellow-400 font-bold rounded-2xl text-xs sm:text-sm shadow transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> Input Beban Baru
+                    </button>
+                    <button onclick="switchTab('manuver')" class="px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl text-xs sm:text-sm border border-white/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-shuffle"></i> Catat Manuver
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Total Log Beban</p>
+                        <h3 id="stat-total-records" class="text-2xl font-black text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-blue-50 text-plnBlue p-4 rounded-2xl"><i class="fa-solid fa-database text-xl"></i></div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Log Manuver Tersimpan</p>
+                        <h3 id="stat-manuver-records" class="text-2xl font-black text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-amber-50 text-amber-600 p-4 rounded-2xl"><i class="fa-solid fa-shuffle text-xl"></i></div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Data Bulan Ini</p>
+                        <h3 id="stat-month-records" class="text-2xl font-black text-slate-800 mt-1">0</h3>
+                    </div>
+                    <div class="bg-sky-50 text-plnSky p-4 rounded-2xl"><i class="fa-solid fa-calendar-days text-xl"></i></div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase">Status Sinkronisasi</p>
+                        <h3 id="sync-status-text" class="text-base font-black text-emerald-600 mt-1">Manual / Cloud Ready</h3>
+                    </div>
+                    <div class="bg-emerald-50 text-emerald-600 p-4 rounded-2xl"><i class="fa-solid fa-cloud-arrow-up text-xl"></i></div>
+                </div>
+            </div>
+
+            <!-- Recent Logs & Quick Shortcuts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Recent Load Records -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-base text-slate-900 flex items-center"><i class="fa-solid fa-clock-rotate-left mr-2 text-plnBlue"></i> Pencatatan Beban Puncak Terakhir</h3>
+                    </div>
+                    <div id="dashboard-recent-list" class="space-y-3">
+                        <p class="text-xs text-slate-400 text-center py-6">Memuat data...</p>
+                    </div>
+
+                    <!-- Recent Manuver Records -->
+                    <div class="pt-4 border-t">
+                        <h3 class="font-bold text-base text-slate-900 mb-3 flex items-center"><i class="fa-solid fa-shuffle mr-2 text-amber-600"></i> Catatan Manuver Terakhir</h3>
+                        <div id="dashboard-recent-manuver" class="space-y-3">
+                            <p class="text-xs text-slate-400 text-center py-4">Memuat data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pintasan Operasi & Shortcuts -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between space-y-4">
+                    <div>
+                        <h3 class="font-bold text-base text-slate-900 mb-1 flex items-center"><i class="fa-solid fa-bolt mr-2 text-plnYellow"></i> Pintasan Operasi Kilat</h3>
+                        <p class="text-xs text-slate-500 mb-4">Akses cepat menuju rekapitulasi jam operasional dan laporan gardu induk.</p>
+                    </div>
+                    <div class="space-y-2.5">
+                        <button onclick="switchTab('jam10')" class="w-full bg-slate-50 hover:bg-blue-50 border hover:border-blue-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                            <span><i class="fa-solid fa-clock text-plnBlue mr-2"></i> Rekap Jam 10.00 WIB</span> <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        </button>
+                        <button onclick="switchTab('jam14')" class="w-full bg-slate-50 hover:bg-blue-50 border hover:border-blue-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                            <span><i class="fa-solid fa-clock text-plnBlue mr-2"></i> Rekap Jam 14.00 WIB</span> <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        </button>
+                        <button onclick="switchTab('jam19')" class="w-full bg-slate-50 hover:bg-blue-50 border hover:border-blue-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                            <span><i class="fa-solid fa-clock text-plnBlue mr-2"></i> Rekap Jam 19.00 WIB</span> <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        </button>
+                        <button onclick="switchTab('riwayat-manuver')" class="w-full bg-slate-50 hover:bg-amber-50 border hover:border-amber-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                            <span><i class="fa-solid fa-list-check text-amber-600 mr-2"></i> Riwayat Laporan Manuver</span> <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        </button>
+                        <button onclick="switchTab('trend')" class="w-full bg-slate-50 hover:bg-sky-50 border hover:border-sky-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-between transition">
+                            <span><i class="fa-solid fa-chart-line text-plnSky mr-2"></i> Grafik Trend Bulanan</span> <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- INPUT BEBAN TAB -->
+        <section id="tab-input" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="bg-plnBlue text-white px-6 py-4 flex justify-between items-center border-b-4 border-plnYellow">
+                    <div>
+                        <h3 class="font-bold text-base"><i class="fa-solid fa-pen-to-square mr-2 text-plnYellow"></i> FORMULIR PENCATATAN BEBAN PUNCAK</h3>
+                        <p class="text-xs text-blue-200">Formulir operasional harian untuk mencatat parameter beban arus, daya aktif/reaktif, serta level tegangan secara teliti dan akurat.</p>
+                    </div>
+                    <button onclick="resetLoadForm()" class="text-xs bg-blue-950 text-white px-3 py-1.5 rounded-lg hover:bg-blue-900"><i class="fa-solid fa-rotate-right mr-1"></i> Reset</button>
+                </div>
+
+                <form id="loadForm" onsubmit="handleLoadSubmit(event)" class="p-6 space-y-6">
+                    <input type="hidden" id="edit-load-index" value="">
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Tanggal *</label>
+                            <input type="date" id="input-date" required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Jam Pencatatan *</label>
+                            <select id="input-hour" required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                                <option value="10.00">Jam 10.00 WIB</option>
+                                <option value="14.00">Jam 14.00 WIB</option>
+                                <option value="19.00">Jam 19.00 WIB</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Petugas Jargi 1 *</label>
+                            <select id="input-jargi1" required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                                <option value="">-- Pilih Jargi 1 --</option>
+                                <option value="Arbi">Arbi</option>
+                                <option value="Seza">Seza</option>
+                                <option value="Sarin">Sarin</option>
+                                <option value="Rizal">Rizal</option>
+                                <option value="Khikmah">Khikmah</option>
+                                <option value="Iqbal">Iqbal</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Petugas Jargi 2 *</label>
+                            <select id="input-jargi2" required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                                <option value="">-- Pilih Jargi 2 --</option>
+                                <option value="Arbi">Arbi</option>
+                                <option value="Seza">Seza</option>
+                                <option value="Sarin">Sarin</option>
+                                <option value="Rizal">Rizal</option>
+                                <option value="Khikmah">Khikmah</option>
+                                <option value="Iqbal">Iqbal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Bay Inputs -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-sm text-slate-800 uppercase"><i class="fa-solid fa-tower-broadcast mr-1 text-plnBlue"></i> Pembebanan</h4>
+                            <span class="text-xs text-slate-400 italic">Persentase (%) otomatis & dilewati dengan tombol Tab</span>
+                        </div>
+                        <div id="bay-inputs-container" class="space-y-3 max-h-96 overflow-y-auto pr-2 border rounded-xl p-3 bg-slate-50"></div>
+                    </div>
+
+                    <!-- Voltage Inputs -->
+                    <div class="bg-slate-50 p-4 rounded-xl border">
+                        <h4 class="font-bold text-sm text-slate-800 uppercase mb-3"><i class="fa-solid fa-bolt-lightning mr-1 text-plnBlue"></i> Data Tegangan Sistem (kV)</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Busbar A *</label>
+                                <input type="number" step="0.1" id="volt-busA" required placeholder="kV" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Busbar B *</label>
+                                <input type="number" step="0.1" id="volt-busB" required placeholder="kV" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Teg IBT 1 *</label>
+                                <input type="number" step="0.1" id="volt-ibt1" required placeholder="kV" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Teg IBT 2 *</label>
+                                <input type="number" step="0.1" id="volt-ibt2" required placeholder="kV" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Teg IBT 3 *</label>
+                                <input type="number" step="0.1" id="volt-ibt3" required placeholder="kV" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Teg IBT 4 *</label>
+                                <input type="number" step="0.1" id="volt-ibt4" required placeholder="kV" class="w-full border rounded-lg p-2 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="submit" class="bg-plnBlue hover:bg-blue-900 text-white font-bold px-8 py-3 rounded-xl shadow transition text-sm flex items-center">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Data Beban
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- JAM 10, 14, 19 TABS -->
+        <section id="tab-jam10" class="tab-content hidden space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow border">
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+                    <div>
+                        <h2 class="text-xl font-black text-plnBlue"><i class="fa-solid fa-clock mr-2"></i> Riwayat Pencatatan Beban Jam 10.00 WIB</h2>
+                        <p class="text-xs text-slate-500">Laporan terstruktur dalam bentuk kartu ringkas untuk pembacaan maksimal.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-600">Pilih Tanggal:</label>
+                        <input type="date" id="search-jam10" onchange="renderHistory('10.00')" class="border rounded-xl px-3 py-2 text-xs bg-white outline-none focus:ring-2 focus:ring-plnBlue font-semibold">
+                        <button onclick="resetFilter('10.00')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-xl font-bold">Reset</button>
+                    </div>
+                </div>
+                <div id="container-jam10" class="space-y-6"></div>
+            </div>
+        </section>
+
+        <section id="tab-jam14" class="tab-content hidden space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow border">
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+                    <div>
+                        <h2 class="text-xl font-black text-plnBlue"><i class="fa-solid fa-clock mr-2"></i> Riwayat Pencatatan Beban Jam 14.00 WIB</h2>
+                        <p class="text-xs text-slate-500">Laporan terstruktur dalam bentuk kartu ringkas untuk pembacaan maksimal.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-600">Pilih Tanggal:</label>
+                        <input type="date" id="search-jam14" onchange="renderHistory('14.00')" class="border rounded-xl px-3 py-2 text-xs bg-white outline-none focus:ring-2 focus:ring-plnBlue font-semibold">
+                        <button onclick="resetFilter('14.00')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-xl font-bold">Reset</button>
+                    </div>
+                </div>
+                <div id="container-jam14" class="space-y-6"></div>
+            </div>
+        </section>
+
+        <section id="tab-jam19" class="tab-content hidden space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow border">
+                <div class="flex justify-between items-center mb-6 flex-wrap gap-3">
+                    <div>
+                        <h2 class="text-xl font-black text-plnBlue"><i class="fa-solid fa-clock mr-2"></i> Riwayat Pencatatan Beban Jam 19.00 WIB</h2>
+                        <p class="text-xs text-slate-500">Laporan terstruktur dalam bentuk kartu ringkas untuk pembacaan maksimal.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-bold text-slate-600">Pilih Tanggal:</label>
+                        <input type="date" id="search-jam19" onchange="renderHistory('19.00')" class="border rounded-xl px-3 py-2 text-xs bg-white outline-none focus:ring-2 focus:ring-plnBlue font-semibold">
+                        <button onclick="resetFilter('19.00')" class="text-xs bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-xl font-bold">Reset</button>
+                    </div>
+                </div>
+                <div id="container-jam19" class="space-y-6"></div>
+            </div>
+        </section>
+
+        <!-- MENU MANUVER TAB -->
+        <section id="tab-manuver" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <div class="border-b pb-4 mb-6">
+                    <h2 class="text-xl font-black text-plnBlue"><i class="fa-solid fa-shuffle mr-2"></i> FORMULIR PENCATATAN MANUVER GITET GANDUL</h2>
+                </div>
+
+                <form id="manuverForm" onsubmit="handleManuverSubmit(event)" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Hari & Tanggal *</label>
+                            <input type="date" id="man-date" required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Pilih Jenis Manuver *</label>
+                            <select id="man-jenis" required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue font-bold text-plnBlue" onchange="onJenisManuverChange()">
+                                <option value="penormalan">Penormalan Tegangan</option>
+                                <option value="pembebasan">Pembebasan Tegangan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Pilih Bay Terkait *</label>
+                            <select id="man-bay" required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue font-bold" onchange="onBaySelectionChange()"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Keterangan Kegiatan / D/R *</label>
+                            <input type="text" id="man-desc" placeholder="Contoh: Maneuver Penormalan Tegangan Bay Kembangan..." required class="w-full border rounded-xl p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-plnBlue">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pengawas Manuver (PM)</label>
+                            <input type="text" id="man-pm" placeholder="Nama PM" required class="w-full border rounded-xl p-2 text-sm bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pengawas Pekerjaan</label>
+                            <input type="text" id="man-work" placeholder="Nama Pengawas Pekerjaan" required class="w-full border rounded-xl p-2 text-sm bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pengawas K3</label>
+                            <input type="text" id="man-k3" placeholder="Nama Pengawas K3" required class="w-full border rounded-xl p-2 text-sm bg-white outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pelaksana Manuver</label>
+                            <input type="text" id="man-operator" placeholder="Nama Pelaksana" required class="w-full border rounded-xl p-2 text-sm bg-white outline-none">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Dispatcher (Dispa)</label>
+                            <input type="text" id="man-dispa" placeholder="Nama Dispatcher" required class="w-full border rounded-xl p-2 text-sm bg-white outline-none">
+                        </div>
+                    </div>
+
+                    <!-- Steps List -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-sm text-slate-700 uppercase"><i class="fa-solid fa-list-ol mr-1 text-plnBlue"></i> Urutan Langkah Manuver</h3>
+                            <span class="text-xs text-slate-400 italic">Default dimuat otomatis sesuai Bay & Jenis Manuver</span>
+                        </div>
+                        
+                        <div id="containerLangkah" class="space-y-2 mb-3"></div>
+
+                        <!-- Tambah Langkah Manual -->
+                        <div class="flex flex-col sm:flex-row gap-2 bg-slate-50 p-3 rounded-xl border">
+                            <input type="text" id="inputLangkahJam" placeholder="Jam (cth: 14:00)" class="w-32 border rounded-lg p-2 text-xs bg-white outline-none font-mono text-center">
+                            <input type="text" id="inputLangkahEquip" placeholder="Nama Peralatan (cth: PMT 7A1)" class="flex-1 border rounded-lg p-2 text-xs bg-white outline-none font-medium">
+                            <select id="inputLangkahStatus" class="w-32 border rounded-lg p-2 text-xs bg-white outline-none font-bold">
+                                <option value="Open">Open</option>
+                                <option value="Close //">Close //</option>
+                            </select>
+                            <select id="inputLangkahCtrl" class="w-32 border rounded-lg p-2 text-xs bg-white outline-none font-bold">
+                                <option value="(RCP)">(RCP)</option>
+                                <option value="(RCC)">(RCC)</option>
+                                <option value="(LOCAL)">(LOCAL)</option>
+                            </select>
+                            <button type="button" onclick="tambahLangkahBaru()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-plus"></i> Tambah
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-plnBlue hover:bg-blue-900 text-white font-bold px-8 py-3 rounded-xl shadow-lg transition text-sm flex items-center">
+                            <i class="fa-solid fa-floppy-disk mr-2"></i> Simpan Catatan Manuver
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- RIWAYAT MANUVER TAB -->
+        <section id="tab-riwayat-manuver" class="tab-content hidden space-y-4">
+            <div class="bg-white p-6 rounded-2xl shadow border">
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
+                    <h2 class="text-xl font-black text-plnBlue"><i class="fa-solid fa-list-check mr-2"></i> Riwayat & Laporan Manuver GITET Gandul</h2>
+                    <input type="text" id="search-manuver" onkeyup="renderManuverHistory()" placeholder="Cari kegiatan / tanggal..." class="border rounded-xl px-3 py-2 text-xs w-64 outline-none focus:ring-2 focus:ring-plnBlue">
+                </div>
+                <div id="manuver-history-list" class="space-y-4"></div>
+            </div>
+        </section>
+
+        <!-- TREND BULANAN TAB -->
+        <section id="tab-trend" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
+                    <div>
+                        <h2 class="text-xl font-black text-plnBlue"><i class="fa-solid fa-chart-line mr-2"></i> Analisis Trend & Beban Puncak Tertinggi</h2>
+                        <p class="text-xs text-slate-500">Grafik harian per jam/bay dengan fitur pembanding, serta tabel rekapitulasi bulanan.</p>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase">Pilih Bulan Rekap</label>
+                        <input type="month" id="filter-month" onchange="renderMonthlyPeakReport()" class="border rounded-xl p-2 text-xs bg-slate-50 font-bold outline-none focus:ring-2 focus:ring-plnBlue">
+                    </div>
+                </div>
+
+                <!-- Grafik Trend Harian -->
+                <div class="space-y-4 bg-slate-50 p-4 rounded-2xl border">
+                    <h3 class="font-bold text-sm text-slate-700 uppercase flex items-center justify-between">
+                        <span><i class="fa-solid fa-chart-area mr-1 text-plnBlue"></i> Grafik Trend Harian (Per Jam & Bay)</span>
+                        <button type="button" onclick="toggleComparator()" id="btn-toggle-comp" class="bg-plnSky hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow transition">
+                            <i class="fa-solid fa-code-compare mr-1"></i> Aktifkan Pembanding (2/3 Grafik)
+                        </button>
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-white p-4 rounded-xl border shadow-sm space-y-3">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-plnBlue">Grafik 1 (Utama)</span>
+                                <select id="trend-bay-1" onchange="renderTrendCharts()" class="border rounded-lg p-1.5 text-xs bg-slate-50 font-semibold outline-none"></select>
+                                <select id="trend-hour-1" onchange="renderTrendCharts()" class="border rounded-lg p-1.5 text-xs bg-slate-50 font-semibold outline-none">
+                                    <option value="10.00">Jam 10.00</option>
+                                    <option value="14.00">Jam 14.00</option>
+                                    <option value="19.00">Jam 19.00</option>
+                                </select>
+                            </div>
+                            <div class="h-64 relative">
+                                <canvas id="trendChart1"></canvas>
+                            </div>
+                        </div>
+
+                        <div id="comp-box-2" class="bg-white p-4 rounded-xl border shadow-sm space-y-3 hidden">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-amber-600">Grafik 2 (Pembanding)</span>
+                                <select id="trend-bay-2" onchange="renderTrendCharts()" class="border rounded-lg p-1.5 text-xs bg-slate-50 font-semibold outline-none"></select>
+                                <select id="trend-hour-2" onchange="renderTrendCharts()" class="border rounded-lg p-1.5 text-xs bg-slate-50 font-semibold outline-none">
+                                    <option value="10.00">Jam 10.00</option>
+                                    <option value="14.00" selected>Jam 14.00</option>
+                                    <option value="19.00">Jam 19.00</option>
+                                </select>
+                            </div>
+                            <div class="h-64 relative">
+                                <canvas id="trendChart2"></canvas>
+                            </div>
+                        </div>
+
+                        <div id="comp-box-3" class="bg-white p-4 rounded-xl border shadow-sm space-y-3 hidden">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-bold text-emerald-600">Grafik 3 (Pembanding)</span>
+                                <select id="trend-bay-3" onchange="renderTrendCharts()" class="border rounded-lg p-1.5 text-xs bg-slate-50 font-semibold outline-none"></select>
+                                <select id="trend-hour-3" onchange="renderTrendCharts()" class="border rounded-lg p-1.5 text-xs bg-slate-50 font-semibold outline-none">
+                                    <option value="10.00">Jam 10.00</option>
+                                    <option value="14.00">Jam 14.00</option>
+                                    <option value="19.00" selected>Jam 19.00</option>
+                                </select>
+                            </div>
+                            <div class="h-64 relative">
+                                <canvas id="trendChart3"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabel Rekapitulasi Beban Puncak Bulanan -->
+                <div class="space-y-3 pt-4 border-t">
+                    <h3 class="font-bold text-sm text-slate-700 uppercase"><i class="fa-solid fa-table mr-1 text-plnYellow"></i> Tabel Beban Puncak Tertinggi Bulanan Per Bay</h3>
+                    <div class="overflow-x-auto border rounded-xl">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-blue-900 text-white">
+                                <tr>
+                                    <th class="p-3 border-r border-blue-800" rowspan="2">Nama Peralatan (Bay)</th>
+                                    <th class="p-3 border-r border-blue-800 text-center" rowspan="2">Arus Nominal (A)</th>
+                                    <th class="p-3 border-r border-blue-800 text-center bg-blue-950" colspan="4">Jam 10.00 WIB Tertinggi</th>
+                                    <th class="p-3 border-r border-blue-800 text-center bg-blue-900" colspan="4">Jam 14.00 WIB Tertinggi</th>
+                                    <th class="p-3 border-r border-blue-800 text-center bg-blue-950" colspan="4">Jam 19.00 WIB Tertinggi</th>
+                                    <th class="p-3 text-center bg-amber-600" rowspan="2">MW Tertinggi (Antara Jam 10, 14, 19)</th>
+                                </tr>
+                                <tr class="bg-blue-950 text-white text-[11px]">
+                                    <th class="p-2 border-r border-blue-800">Tgl</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">Ampere</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">MW</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">MVar</th>
+                                    
+                                    <th class="p-2 border-r border-blue-800">Tgl</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">Ampere</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">MW</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">MVar</th>
+                                    
+                                    <th class="p-2 border-r border-blue-800">Tgl</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">Ampere</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">MW</th>
+                                    <th class="p-2 border-r border-blue-800 text-right">MVar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthly-peak-tbody" class="divide-y divide-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-plnDark text-white py-6 mt-12 border-t-4 border-plnYellow text-center text-xs no-print">
+        <p class="font-bold">© 2026 GITET 500 kV GANDUL — PT PLN (Persero)</p>
+        <p class="text-slate-400 mt-1">Sistem Pencatatan Beban Puncak & Log Manuver Operasional</p>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const bayConfigs = [
+            { name: 'Bay Lengkong 1', maxA: 5704 },
+            { name: 'Bay Lengkong 2', maxA: 5704 },
+            { name: 'Bay Depok 1', maxA: 2876 },
+            { name: 'Bay Depok 2', maxA: 2876 },
+            { name: 'Bay Kembangan', maxA: 3224 },
+            { name: 'Bay Durikosambi', maxA: 3224 },
+            { name: 'Bay IBT 1', maxA: 1718 },
+            { name: 'Bay IBT 2', maxA: 1718 },
+            { name: 'Bay IBT 3', maxA: 1718 },
+            { name: 'Bay IBT 4', maxA: 1718 }
+        ];
+
+        const manuverBaysList = [
+            "Bay Kembangan", "Bay Durikosambi", "Bay Lengkong 1", "Bay Lengkong 2", 
+            "Bay Depok 1", "Bay Depok 2", "Bay IBT 1", "Bay IBT 2", "Bay IBT 3", "Bay IBT 4",
+            "Bay 7A1", "Bay 7AB1", "Bay 7A2", "Bay 7AB2", "Bay 7B2", 
+            "Bay 7A3", "Bay 7AB3", "Bay 7B3", "Bay 7A4", "Bay 7AB4", 
+            "Bay 7B4", "Bay 7A5", "Bay 7AB5", "Bay 7B5", "Bay 7AB6", "Bay 7B6"
+        ];
+
+        const defaultManuverData = {
+            penormalan: {
+                "Bay Kembangan": [
+                    { time: "", equip: "PMS Line Kembangan", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB1", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A1", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A1", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB1", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay Durikosambi": [
+                    { time: "", equip: "PMS Line Durikosambi", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB2", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay Lengkong 1": [
+                    { time: "", equip: "PMS Line Lengkong 1", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB2", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay Lengkong 2": [
+                    { time: "", equip: "PMS Line Lengkong 2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB3", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B3", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B3", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB3", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay Depok 1": [
+                    { time: "", equip: "PMS Line Depok 1", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB4", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B4", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B4", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB4", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay Depok 2": [
+                    { time: "", equip: "PMS Line Depok 2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB5", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B5", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B5", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB5", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 1": [
+                    { time: "", equip: "PMS Line IBT 1", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB3", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A3", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A3", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB3", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 2": [
+                    { time: "", equip: "PMS Line IBT 2", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB4", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A4", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A4", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB4", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 3": [
+                    { time: "", equip: "PMS Line IBT 3", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB5", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A5", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A5", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB5", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 4": [
+                    { time: "", equip: "PMS Line IBT 4", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB6", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B6", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B6", status: "Close //", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7AB6", status: "Close //", ctrl: "(RCP)" }
+                ],
+                "Bay 7A1": [{ time: "", equip: "PMS 7A1", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7A1", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7AB1": [{ time: "", equip: "PMS 7AB1", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7AB1", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7A2": [{ time: "", equip: "PMS 7A2", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7A2", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7AB2": [{ time: "", equip: "PMS 7AB2", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7AB2", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7B2": [{ time: "", equip: "PMS 7B2", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7B2", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7A3": [{ time: "", equip: "PMS 7A3", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7A3", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7AB3": [{ time: "", equip: "PMS 7AB3", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7AB3", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7B3": [{ time: "", equip: "PMS 7B3", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7B3", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7A4": [{ time: "", equip: "PMS 7A4", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7A4", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7AB4": [{ time: "", equip: "PMS 7AB4", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7AB4", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7B4": [{ time: "", equip: "PMS 7B4", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7B4", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7A5": [{ time: "", equip: "PMS 7A5", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7A5", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7AB5": [{ time: "", equip: "PMS 7AB5", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7AB5", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7B5": [{ time: "", equip: "PMS 7B5", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7B5", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7AB6": [{ time: "", equip: "PMS 7AB6", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7AB6", status: "Close //", ctrl: "(RCP)" }],
+                "Bay 7B6": [{ time: "", equip: "PMS 7B6", status: "Close //", ctrl: "(RCP)" }, { time: "", equip: "PMT 7B6", status: "Close //", ctrl: "(RCP)" }]
+            },
+            pembebasan: {
+                "Bay Kembangan": [
+                    { time: "", equip: "PMT 7AB1", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A1", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB1", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A1", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line Kembangan", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay Durikosambi": [
+                    { time: "", equip: "PMT 7AB2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line Durikosambi", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay Lengkong 1": [
+                    { time: "", equip: "PMT 7AB2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B2", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line Lengkong 1", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay Lengkong 2": [
+                    { time: "", equip: "PMT 7AB3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line Lengkong 2", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay Depok 1": [
+                    { time: "", equip: "PMT 7AB4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line Depok 1", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay Depok 2": [
+                    { time: "", equip: "PMT 7AB5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7B5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line Depok 2", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 1": [
+                    { time: "", equip: "PMT 7AB3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line IBT 1", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 2": [
+                    { time: "", equip: "PMT 7AB4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A4", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line IBT 2", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 3": [
+                    { time: "", equip: "PMT 7AB5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7A5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A5", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line IBT 3", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay IBT 4": [
+                    { time: "", equip: "PMT 7AB6", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMT 7B6", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7AB3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Pengapit 7A3", status: "Open", ctrl: "(RCP)" },
+                    { time: "", equip: "PMS Line IBT 1", status: "Open", ctrl: "(RCP)" }
+                ],
+                "Bay 7A1": [{ time: "", equip: "PMT 7A1", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7A1", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7AB1": [{ time: "", equip: "PMT 7AB1", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7AB1", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7A2": [{ time: "", equip: "PMT 7A2", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7A2", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7AB2": [{ time: "", equip: "PMT 7AB2", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7AB2", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7B2": [{ time: "", equip: "PMT 7B2", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7B2", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7A3": [{ time: "", equip: "PMT 7A3", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7A3", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7AB3": [{ time: "", equip: "PMT 7AB3", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7AB3", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7B3": [{ time: "", equip: "PMT 7B3", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7B3", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7A4": [{ time: "", equip: "PMT 7A4", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7A4", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7AB4": [{ time: "", equip: "PMT 7AB4", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7AB4", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7B4": [{ time: "", equip: "PMT 7B4", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7B4", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7A5": [{ time: "", equip: "PMT 7A5", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7A5", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7AB5": [{ time: "", equip: "PMT 7AB5", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7AB5", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7B5": [{ time: "", equip: "PMT 7B5", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7B5", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7AB6": [{ time: "", equip: "PMT 7AB6", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7AB6", status: "Open", ctrl: "(RCP)" }],
+                "Bay 7B6": [{ time: "", equip: "PMT 7B6", status: "Open", ctrl: "(RCP)" }, { time: "", equip: "PMS 7B6", status: "Open", ctrl: "(RCP)" }]
+            }
+        };
+
+        let currentManuverSteps = [];
+
+        const FIXED_GSCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNBCPzPAbIzZAqogy4EOdq0BlUOTNCjXoOL9544zeAb8HyyS03744Nsq0QjR67P9t4Dw/exec";
+
+        let records = JSON.parse(localStorage.getItem('gandul_records') || '[]');
+        let manuverRecords = JSON.parse(localStorage.getItem('gandul_manuver') || '[]');
+        
+        let chartInstances = { 1: null, 2: null, 3: null };
+        let isComparatorActive = false;
+
+        function getLocalDateString() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getLocalMonthString() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+        }
+
+        function formatIndonesianDate(dateStr) {
+            if(!dateStr || dateStr === '-') return '-';
+            const parts = dateStr.split('-');
+            if(parts.length !== 3) return dateStr;
+            const year = parts[0];
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+            const monthIdx = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            if(monthIdx < 0 || monthIdx > 11) return dateStr;
+            return `${day} ${monthNames[monthIdx]} ${year}`;
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-plnYellow', 'text-plnDark', 'shadow');
+                btn.classList.add('text-white', 'hover:bg-blue-800');
+            });
+            
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if(targetTab) targetTab.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if(activeBtn) {
+                activeBtn.classList.remove('text-white', 'hover:bg-blue-800');
+                activeBtn.classList.add('bg-plnYellow', 'text-plnDark', 'shadow');
+            }
+
+            if(tabId === 'trend') {
+                renderTrendCharts();
+                renderMonthlyPeakReport();
+            }
+            if(tabId === 'riwayat-manuver') renderManuverHistory();
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('input-date');
+            if(dateInput) dateInput.value = getLocalDateString();
+            const manDateInput = document.getElementById('man-date');
+            if(manDateInput) manDateInput.value = getLocalDateString();
+            
+            const filterMonthEl = document.getElementById('filter-month');
+            if(filterMonthEl) filterMonthEl.value = getLocalMonthString();
+            
+            buildBayInputs();
+            buildManuverBayDropdowns();
+            buildTrendBaySelects();
+            loadDefaultManuverSteps();
+
+            renderAllViews();
+            loadDataFromCloudSafe();
+        });
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            if(!toast) return;
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3500);
+        }
+
+        function cleanDateStr(dateInput) {
+            if(!dateInput) return '-';
+            let str = String(dateInput);
+            if(str.includes('T')) {
+                str = str.split('T')[0];
+            } else if(str.includes(' ')) {
+                str = str.split(' ')[0];
+            }
+            return str;
+        }
+
+        function parseStepsData(rawSteps) {
+            if (!rawSteps) return [];
+            if (Array.isArray(rawSteps)) return rawSteps;
+            
+            if (typeof rawSteps === 'string') {
+                try {
+                    const parsed = JSON.parse(rawSteps);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch (e) {
+                    const lines = rawSteps.split(/\r?\n/);
+                    let stepsList = [];
+                    lines.forEach(line => {
+                        let cleanLine = line.trim();
+                        if (!cleanLine) return;
+                        
+                        let timeMatch = cleanLine.match(/^\[(.*?)\]/);
+                        let time = timeMatch ? timeMatch[1] : '';
+                        let remaining = timeMatch ? cleanLine.replace(/^\[.*?\]\s*/, '') : cleanLine;
+                        
+                        let ctrlMatch = remaining.match(/\((RCP|RCC|LOCAL)\)$/i);
+                        let ctrl = ctrlMatch ? `(${ctrlMatch[1].toUpperCase()})` : '(RCP)';
+                        if (ctrlMatch) remaining = remaining.replace(/\s*\(.*?\)$/, '');
+
+                        let status = "Open";
+                        if (remaining.includes("Close")) {
+                            status = "Close //";
+                            remaining = remaining.replace(/[\*\-]?\s*Close\s*\/\/\s*/i, '');
+                        } else {
+                            remaining = remaining.replace(/[\*\-]?\s*Open\s*/i, '');
+                        }
+
+                        let equip = remaining.replace(/^[\-\*]\s*/, '').trim();
+
+                        stepsList.push({
+                            time: time,
+                            equip: equip || cleanLine,
+                            status: status,
+                            ctrl: ctrl
+                        });
+                    });
+                    return stepsList;
+                }
+            }
+            return [];
+        }
+
+        function loadDataFromCloudSafe(isSilent = false) {
+            if(!FIXED_GSCRIPT_URL) return;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+            fetch(FIXED_GSCRIPT_URL, { signal: controller.signal })
+                .then(res => res.json())
+                .then(data => {
+                    clearTimeout(timeoutId);
+                    let hasNewData = false;
+
+                    if(data.records && data.records.length > 0) {
+                        const newRecords = data.records.map(r => {
+                            r.date = cleanDateStr(r.date);
+                            if(r.bays) {
+                                for(let bName in r.bays) {
+                                    const cfg = bayConfigs.find(c => c.name === bName);
+                                    if(cfg && cfg.maxA > 0) {
+                                        let amp = parseFloat(r.bays[bName].ampere) || 0;
+                                        r.bays[bName].percent = ((amp / cfg.maxA) * 100).toFixed(2) + '%';
+                                    }
+                                }
+                            }
+                            return r;
+                        });
+                        if(JSON.stringify(newRecords) !== JSON.stringify(records)) {
+                            records = newRecords;
+                            localStorage.setItem('gandul_records', JSON.stringify(records));
+                            hasNewData = true;
+                        }
+                    }
+
+                    if(data.manuverRecords && data.manuverRecords.length > 0) {
+                        const newMan = data.manuverRecords.map(m => {
+                            m.date = cleanDateStr(m.date);
+                            m.steps = parseStepsData(m.steps);
+                            return m;
+                        });
+                        if(JSON.stringify(newMan) !== JSON.stringify(manuverRecords)) {
+                            manuverRecords = newMan;
+                            localStorage.setItem('gandul_manuver', JSON.stringify(manuverRecords));
+                            hasNewData = true;
+                        }
+                    }
+
+                    if(hasNewData || !isSilent) {
+                        renderAllViews();
+                        if(!isSilent) showToast("Sinkronisasi Cloud Berhasil!");
+                    }
+
+                    const syncEl = document.getElementById('sync-status-text');
+                    if(syncEl) { syncEl.innerText = "Manual / Cloud Ready"; syncEl.className = "text-base font-black text-emerald-600 mt-1"; }
+                })
+                .catch(err => {
+                    clearTimeout(timeoutId);
+                    if(!isSilent) console.log('Mode Offline:', err);
+                    const syncEl = document.getElementById('sync-status-text');
+                    if(syncEl) { syncEl.innerText = "Offline Mode"; syncEl.className = "text-base font-black text-amber-600 mt-1"; }
+                    renderAllViews();
+                });
+        }
+
+        function renderAllViews() {
+            renderDashboard();
+            renderHistory('10.00');
+            renderHistory('14.00');
+            renderHistory('19.00');
+            renderManuverHistory();
+            renderMonthlyPeakReport();
+            if(!document.getElementById('tab-trend').classList.contains('hidden')) {
+                renderTrendCharts();
+            }
+        }
+
+        function buildBayInputs(values = {}) {
+            const container = document.getElementById('bay-inputs-container');
+            if(!container) return;
+            container.innerHTML = '';
+            bayConfigs.forEach((bay, index) => {
+                const val = values[bay.name] || { ampere: '', mw: '', mvar: '', percent: '0.00%' };
+                container.innerHTML += `
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center bg-white p-3 rounded-xl border">
+                        <div class="sm:col-span-4 font-bold text-slate-700 text-xs">
+                            ${bay.name} <span class="text-[10px] text-slate-400 font-normal">(${bay.maxA} A)</span>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <input type="number" step="0.1" id="bay-${index}-amp" oninput="calcPct(${index}, ${bay.maxA})" value="${val.ampere}" required placeholder="Ampere" class="w-full border rounded p-1.5 bg-white text-xs outline-none focus:ring-1 focus:ring-plnBlue">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <input type="number" step="0.1" id="bay-${index}-mw" value="${val.mw}" required placeholder="MW" class="w-full border rounded p-1.5 bg-white text-xs outline-none focus:ring-1 focus:ring-plnBlue">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <input type="number" step="0.1" id="bay-${index}-mvar" value="${val.mvar}" required placeholder="MVar" class="w-full border rounded p-1.5 bg-white text-xs outline-none focus:ring-1 focus:ring-plnBlue">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <input type="text" id="bay-${index}-pct" readonly tabindex="-1" value="${val.percent}" class="w-full bg-slate-100 border rounded p-1.5 text-xs font-bold text-plnBlue outline-none cursor-not-allowed">
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function calcPct(index, maxA) {
+            const amp = parseFloat(document.getElementById(`bay-${index}-amp`).value) || 0;
+            const pct = maxA > 0 ? ((amp / maxA) * 100).toFixed(2) : 0;
+            document.getElementById(`bay-${index}-pct`).value = pct + '%';
+        }
+
+        function buildManuverBayDropdowns() {
+            const select = document.getElementById('man-bay');
+            if(!select) return;
+            select.innerHTML = '';
+            manuverBaysList.forEach(b => {
+                select.innerHTML += `<option value="${b}">${b}</option>`;
+            });
+        }
+
+        function onJenisManuverChange() {
+            loadDefaultManuverSteps();
+        }
+
+        function onBaySelectionChange() {
+            loadDefaultManuverSteps();
+        }
+
+        function loadDefaultManuverSteps() {
+            const jenis = document.getElementById('man-jenis').value;
+            const bay = document.getElementById('man-bay').value;
+
+            if(defaultManuverData[jenis] && defaultManuverData[jenis][bay]) {
+                currentManuverSteps = JSON.parse(JSON.stringify(defaultManuverData[jenis][bay]));
+            } else {
+                currentManuverSteps = [];
+            }
+            renderManuverStepsUI();
+        }
+
+        function renderManuverStepsUI() {
+            const container = document.getElementById('containerLangkah');
+            if(!container) return;
+            container.innerHTML = '';
+
+            if(currentManuverSteps.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4 bg-slate-50 border rounded-xl">Belum ada langkah. Tambahkan langkah di bawah.</p>`;
+                return;
+            }
+
+            currentManuverSteps.forEach((step, idx) => {
+                const row = document.createElement('div');
+                row.className = 'flex flex-col sm:flex-row items-center gap-2 bg-slate-50 p-2.5 rounded-xl border';
+                row.innerHTML = `
+                    <span class="text-xs font-bold text-slate-500 w-6">${idx + 1}.</span>
+                    <input type="text" value="${step.time || ''}" onchange="updateManuverStepField(${idx}, 'time', this.value)" placeholder="Jam" class="w-24 border rounded-lg p-2 text-xs bg-white outline-none font-mono text-center">
+                    <input type="text" value="${step.equip || ''}" onchange="updateManuverStepField(${idx}, 'equip', this.value)" placeholder="Nama Peralatan" class="flex-1 border rounded-lg p-2 text-xs bg-white outline-none font-medium w-full">
+                    <select onchange="updateManuverStepField(${idx}, 'status', this.value)" class="w-32 border rounded-lg p-2 text-xs bg-white outline-none font-bold">
+                        <option value="Open" ${step.status === 'Open' ? 'selected' : ''}>Open</option>
+                        <option value="Close //" ${step.status === 'Close //' ? 'selected' : ''}>Close //</option>
+                    </select>
+                    <select onchange="updateManuverStepField(${idx}, 'ctrl', this.value)" class="w-32 border rounded-lg p-2 text-xs bg-white outline-none font-bold">
+                        <option value="(RCP)" ${step.ctrl === '(RCP)' ? 'selected' : ''}>(RCP)</option>
+                        <option value="(RCC)" ${step.ctrl === '(RCC)' ? 'selected' : ''}>(RCC)</option>
+                        <option value="(LOCAL)" ${step.ctrl === '(LOCAL)' ? 'selected' : ''}>(LOCAL)</option>
+                    </select>
+                    <div class="flex gap-1">
+                        <button type="button" onclick="moveManuverStep(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs disabled:opacity-30 font-bold" title="Geser ke atas">⬆️</button>
+                        <button type="button" onclick="moveManuverStep(${idx}, 1)" ${idx === currentManuverSteps.length - 1 ? 'disabled' : ''} class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs disabled:opacity-30 font-bold" title="Geser ke bawah">⬇️</button>
+                        <button type="button" onclick="removeManuverStep(${idx})" class="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-xs font-bold" title="Hapus langkah">✕</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function updateManuverStepField(idx, field, val) {
+            currentManuverSteps[idx][field] = val;
+        }
+
+        function tambahLangkahBaru() {
+            const timeVal = document.getElementById('inputLangkahJam').value.trim();
+            const equipVal = document.getElementById('inputLangkahEquip').value.trim();
+            const statusVal = document.getElementById('inputLangkahStatus').value;
+            const ctrlVal = document.getElementById('inputLangkahCtrl').value;
+
+            if(!equipVal) {
+                showToast("Nama Peralatan wajib diisi!");
+                return;
+            }
+
+            currentManuverSteps.push({ time: timeVal, equip: equipVal, status: statusVal, ctrl: ctrlVal });
+            document.getElementById('inputLangkahJam').value = '';
+            document.getElementById('inputLangkahEquip').value = '';
+            renderManuverStepsUI();
+        }
+
+        function removeManuverStep(idx) {
+            currentManuverSteps.splice(idx, 1);
+            renderManuverStepsUI();
+        }
+
+        function moveManuverStep(idx, direction) {
+            const target = idx + direction;
+            if(target >= 0 && target < currentManuverSteps.length) {
+                const temp = currentManuverSteps[idx];
+                currentManuverSteps[idx] = currentManuverSteps[target];
+                currentManuverSteps[target] = temp;
+                renderManuverStepsUI();
+            }
+        }
+
+        function buildTrendBaySelects() {
+            for(let i = 1; i <= 3; i++) {
+                const select = document.getElementById(`trend-bay-${i}`);
+                if(!select) continue;
+                select.innerHTML = '';
+                bayConfigs.forEach((b, idx) => {
+                    let selected = (i === 1 && idx === 0) || (i === 2 && idx === 1) || (i === 3 && idx === 2) ? 'selected' : '';
+                    select.innerHTML += `<option value="${b.name}" ${selected}>${b.name}</option>`;
+                });
+            }
+        }
+
+        function toggleComparator() {
+            isComparatorActive = !isComparatorActive;
+            const box2 = document.getElementById('comp-box-2');
+            const box3 = document.getElementById('comp-box-3');
+            const btn = document.getElementById('btn-toggle-comp');
+
+            if(isComparatorActive) {
+                box2.classList.remove('hidden');
+                box3.classList.remove('hidden');
+                btn.innerHTML = `<i class="fa-solid fa-code-compare mr-1"></i> Matikan Pembanding (1 Grafik)`;
+                btn.className = "bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow transition";
+            } else {
+                box2.classList.add('hidden');
+                box3.classList.add('hidden');
+                btn.innerHTML = `<i class="fa-solid fa-code-compare mr-1"></i> Aktifkan Pembanding (2/3 Grafik)`;
+                btn.className = "bg-plnSky hover:bg-sky-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow transition";
+            }
+            renderTrendCharts();
+        }
+
+        function renderTrendCharts() {
+            renderSingleChart(1, '#1e3a8a', '#0284c7');
+            if(isComparatorActive) {
+                renderSingleChart(2, '#d97706', '#f59e0b');
+                renderSingleChart(3, '#059669', '#10b981');
+            }
+        }
+
+        function renderSingleChart(chartIndex, colorAmp, colorMw) {
+            const baySelect = document.getElementById(`trend-bay-${chartIndex}`);
+            const hourSelect = document.getElementById(`trend-hour-${chartIndex}`);
+            const canvas = document.getElementById(`trendChart${chartIndex}`);
+            if(!baySelect || !hourSelect || !canvas) return;
+
+            const bayName = baySelect.value;
+            const targetHour = hourSelect.value;
+
+            const sorted = [...records]
+                .filter(r => r.hour === targetHour && r.bays && r.bays[bayName])
+                .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            let labels = [], dataAmp = [], dataMw = [];
+            sorted.forEach(r => {
+                let cleanDate = formatIndonesianDate(cleanDateStr(r.date));
+                labels.push(cleanDate);
+                dataAmp.push(r.bays[bayName].ampere);
+                dataMw.push(r.bays[bayName].mw);
+            });
+
+            const ctx = canvas.getContext('2d');
+            if(chartInstances[chartIndex]) chartInstances[chartIndex].destroy();
+
+            chartInstances[chartIndex] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length ? labels : ['Belum ada data'],
+                    datasets: [
+                        { label: `${bayName} (${targetHour}) - Ampere (A)`, data: dataAmp, borderColor: colorAmp, backgroundColor: colorAmp, tension: 0.2 },
+                        { label: `${bayName} (${targetHour}) - MW`, data: dataMw, borderColor: colorMw, backgroundColor: colorMw, tension: 0.2 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function resetLoadForm() {
+            document.getElementById('loadForm').reset();
+            document.getElementById('edit-load-index').value = '';
+            document.getElementById('input-date').value = getLocalDateString();
+            buildBayInputs();
+        }
+
+        function handleLoadSubmit(event) {
+            event.preventDefault();
+            const editIndex = document.getElementById('edit-load-index').value;
+            const date = cleanDateStr(document.getElementById('input-date').value);
+            const hour = document.getElementById('input-hour').value;
+            const jargi1 = document.getElementById('input-jargi1').value;
+            const jargi2 = document.getElementById('input-jargi2').value;
+
+            if(!jargi1 || !jargi2) {
+                showToast("Silakan pilih Petugas Jargi 1 dan Jargi 2 terlebih dahulu!");
+                return;
+            }
+
+            let baysData = {};
+            for(let i=0; i<bayConfigs.length; i++) {
+                const amp = document.getElementById(`bay-${i}-amp`).value;
+                const mw = document.getElementById(`bay-${i}-mw`).value;
+                const mvar = document.getElementById(`bay-${i}-mvar`).value;
+                let pct = document.getElementById(`bay-${i}-pct`).value;
+
+                let ampNum = parseFloat(amp) || 0;
+                if(!pct || pct === 'undefined%') {
+                    pct = bayConfigs[i].maxA > 0 ? ((ampNum / bayConfigs[i].maxA) * 100).toFixed(2) + '%' : '0.00%';
+                }
+
+                if(amp === '' || mw === '' || mvar === '') {
+                    showToast(`Data ${bayConfigs[i].name} belum lengkap!`);
+                    return;
+                }
+
+                baysData[bayConfigs[i].name] = {
+                    ampere: ampNum,
+                    mw: parseFloat(mw) || 0,
+                    mvar: parseFloat(mvar) || 0,
+                    percent: pct
+                };
+            }
+
+            const busA = document.getElementById('volt-busA').value;
+            const busB = document.getElementById('volt-busB').value;
+            const ibt1 = document.getElementById('volt-ibt1').value;
+            const ibt2 = document.getElementById('volt-ibt2').value;
+            const ibt3 = document.getElementById('volt-ibt3').value;
+            const ibt4 = document.getElementById('volt-ibt4').value;
+
+            const payload = {
+                id: editIndex !== '' ? records[editIndex].id : Date.now(),
+                date, hour, jargi1, jargi2,
+                bays: baysData,
+                voltage: { busA: parseFloat(busA) || 0, busB: parseFloat(busB) || 0, ibt1: parseFloat(ibt1) || 0, ibt2: parseFloat(ibt2) || 0, ibt3: parseFloat(ibt3) || 0, ibt4: parseFloat(ibt4) || 0 }
+            };
+
+            if(editIndex !== '') {
+                records[editIndex] = payload;
+                showToast("Data beban berhasil diperbarui!");
+                resetLoadForm();
+            } else {
+                records.unshift(payload);
+                showToast("Data beban berhasil disimpan!");
+                document.getElementById('loadForm').reset();
+                document.getElementById('input-date').value = getLocalDateString();
+                buildBayInputs();
+            }
+
+            localStorage.setItem('gandul_records', JSON.stringify(records));
+
+            if(FIXED_GSCRIPT_URL) {
+                fetch(FIXED_GSCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(err => console.log(err));
+            }
+
+            renderAllViews();
+            const tabHourMap = { '10.00': 'jam10', '14.00': 'jam14', '19.00': 'jam19' };
+            switchTab(tabHourMap[hour] || 'jam10');
+        }
+
+        function resetFilter(hourFilter) {
+            const searchId = hourFilter === '10.00' ? 'search-jam10' : (hourFilter === '14.00' ? 'search-jam14' : 'search-jam19');
+            const el = document.getElementById(searchId);
+            if(el) el.value = '';
+            renderHistory(hourFilter);
+        }
+
+        function renderHistory(hourFilter) {
+            const containerId = hourFilter === '10.00' ? 'container-jam10' : (hourFilter === '14.00' ? 'container-jam14' : 'container-jam19');
+            const searchId = hourFilter === '10.00' ? 'search-jam10' : (hourFilter === '14.00' ? 'search-jam14' : 'search-jam19');
+            
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const selectedDate = document.getElementById(searchId)?.value || '';
+            
+            const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const filtered = sortedRecords.filter(r => {
+                if(r.hour !== hourFilter) return false;
+                if(selectedDate && cleanDateStr(r.date) !== selectedDate) return false;
+                return true;
+            });
+
+            if(filtered.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-10 bg-slate-50 rounded-2xl border">Belum ada data pencatatan untuk jam ${hourFilter}${selectedDate ? ' pada tanggal ' + formatIndonesianDate(selectedDate) : ''}.</p>`;
+                return;
+            }
+
+            let htmlCards = '';
+            filtered.forEach((rec) => {
+                const v = rec.voltage || {};
+                let cleanDate = cleanDateStr(rec.date);
+                let longDate = formatIndonesianDate(cleanDate);
+                
+                let bayTableRows = '';
+                for(let bayName in rec.bays) {
+                    const b = rec.bays[bayName];
+                    let pctVal = b.percent;
+                    if(!pctVal || pctVal === 'undefined' || pctVal === 'undefined%') {
+                        const cfg = bayConfigs.find(c => c.name === bayName);
+                        pctVal = (cfg && cfg.maxA > 0) ? ((b.ampere / cfg.maxA) * 100).toFixed(2) + '%' : '0.00%';
+                    }
+                    bayTableRows += `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="py-2 px-3 font-bold text-slate-700">${bayName}</td>
+                            <td class="py-2 px-3 text-right font-mono">${b.ampere} A</td>
+                            <td class="py-2 px-3 text-right font-mono">${b.mw} MW</td>
+                            <td class="py-2 px-3 text-right font-mono">${b.mvar} MVar</td>
+                            <td class="py-2 px-3 text-right font-bold text-plnBlue">${pctVal}</td>
+                        </tr>
+                    `;
+                }
+
+                const originalIndex = records.findIndex(r => r.id === rec.id);
+
+                htmlCards += `
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6 transition hover:shadow-md">
+                        <div class="bg-gradient-to-r from-plnBlue to-blue-900 text-white p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div class="flex items-center gap-3">
+                                <span class="bg-plnYellow text-plnDark text-xs font-black px-3 py-1 rounded-lg uppercase shadow">Jam ${rec.hour} WIB</span>
+                                <div>
+                                    <h3 class="font-bold text-sm sm:text-base">${longDate}</h3>
+                                    <p class="text-xs text-blue-200">Petugas Jargi: <strong class="text-white">${rec.jargi1 || '-'}</strong> & <strong class="text-white">${rec.jargi2 || '-'}</strong></p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="printLoadPDF('${rec.id}')" title="Cetak PDF" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1.5"><i class="fa-solid fa-file-pdf"></i> Cetak PDF</button>
+                                <button onclick="editLoadRecord(${originalIndex})" title="Edit" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1.5"><i class="fa-solid fa-pen"></i> Edit</button>
+                                <button onclick="deleteLoadRecord(${originalIndex})" title="Hapus" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1.5"><i class="fa-solid fa-trash"></i> Hapus</button>
+                            </div>
+                        </div>
+
+                        <div class="p-4 sm:p-6 space-y-4">
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-400 mb-2"><i class="fa-solid fa-bolt-lightning text-plnYellow mr-1"></i> Data Tegangan Sistem (kV)</h4>
+                                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border"><span class="block text-[10px] text-slate-400 font-semibold">Busbar A</span><strong class="text-slate-800 text-sm">${v.busA || 0} kV</strong></div>
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border"><span class="block text-[10px] text-slate-400 font-semibold">Busbar B</span><strong class="text-slate-800 text-sm">${v.busB || 0} kV</strong></div>
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border"><span class="block text-[10px] text-slate-400 font-semibold">Teg IBT 1</span><strong class="text-slate-800 text-sm">${v.ibt1 || 0} kV</strong></div>
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border"><span class="block text-[10px] text-slate-400 font-semibold">Teg IBT 2</span><strong class="text-slate-800 text-sm">${v.ibt2 || 0} kV</strong></div>
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border"><span class="block text-[10px] text-slate-400 font-semibold">Teg IBT 3</span><strong class="text-slate-800 text-sm">${v.ibt3 || 0} kV</strong></div>
+                                    <div class="bg-slate-50 p-2.5 rounded-xl border"><span class="block text-[10px] text-slate-400 font-semibold">Teg IBT 4</span><strong class="text-slate-800 text-sm">${v.ibt4 || 0} kV</strong></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-xs font-bold uppercase text-slate-400 mb-2"><i class="fa-solid fa-tower-broadcast text-plnBlue mr-1"></i> Pembebanan</h4>
+                                <div class="overflow-x-auto border rounded-xl">
+                                    <table class="w-full text-left border-collapse text-xs">
+                                        <thead>
+                                            <tr class="bg-slate-100 text-slate-600 border-b">
+                                                <th class="py-2 px-3 font-bold">Peralatan</th>
+                                                <th class="py-2 px-3 font-bold text-right">Ampere</th>
+                                                <th class="py-2 px-3 font-bold text-right">MW</th>
+                                                <th class="py-2 px-3 font-bold text-right">MVar</th>
+                                                <th class="py-2 px-3 font-bold text-right">Beban (%)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>${bayTableRows}</tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = htmlCards;
+        }
+
+        function printLoadPDF(id) {
+            const rec = records.find(r => String(r.id) === String(id));
+            if(!rec) return;
+
+            let longDate = formatIndonesianDate(cleanDateStr(rec.date));
+            let v = rec.voltage || {};
+            
+            let bayRowsHtml = '';
+            for(let bayName in rec.bays) {
+                const b = rec.bays[bayName];
+                let pctVal = b.percent;
+                if(!pctVal || pctVal === 'undefined' || pctVal === 'undefined%') {
+                    const cfg = bayConfigs.find(c => c.name === bayName);
+                    pctVal = (cfg && cfg.maxA > 0) ? ((b.ampere / cfg.maxA) * 100).toFixed(2) + '%' : '0.00%';
+                }
+                bayRowsHtml += `<tr><td style="border:1px solid #cbd5e1; padding:6px;">${bayName}</td><td style="border:1px solid #cbd5e1; padding:6px; text-align:right;">${b.ampere} A</td><td style="border:1px solid #cbd5e1; padding:6px; text-align:right;">${b.mw} MW</td><td style="border:1px solid #cbd5e1; padding:6px; text-align:right;">${b.mvar} MVar</td><td style="border:1px solid #cbd5e1; padding:6px; text-align:right; font-weight:bold; color:#1e3a8a;">${pctVal}</td></tr>`;
+            }
+
+            const win = window.open('', '_blank');
+            win.document.write(`
+                <html><head><title>Laporan Pembebanan GITET Gandul - ${longDate}</title>
+                <style>
+                    body{font-family:Arial,sans-serif; padding:25px; color:#0f172a; font-size:12px;} 
+                    .header{border-bottom:3px solid #eab308; padding-bottom:12px; margin-bottom:15px; display:flex; justify-content:space-between;} 
+                    h2{margin:0; color:#1e3a8a; font-size:18px;} 
+                    h4{margin:15px 0 8px 0; color:#1e3a8a; font-size:13px; text-transform:uppercase;}
+                    table{width:100%; border-collapse:collapse; margin-top:5px;} 
+                    th{background:#1e3a8a; color:white; padding:8px; text-align:left;}
+                    td{padding:6px;}
+                    .volt-table{width:100%; margin-bottom:15px;}
+                    .volt-table td{border:1px solid #cbd5e1; text-align:center; padding:6px; background:#f8fafc;}
+                </style>
+                </head><body>
+                    <div class="header">
+                        <div>
+                            <h2>GITET 500 kV GANDUL</h2>
+                            <p style="margin:4px 0 0 0;">Laporan Beban Puncak Jam ${rec.hour} WIB</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <b>Tanggal:</b> ${longDate}<br>
+                            <b>Petugas Jargi:</b> ${rec.jargi1 || '-'} & ${rec.jargi2 || '-'}
+                        </div>
+                    </div>
+
+                    <h4>Data Tegangan Sistem (kV)</h4>
+                    <table class="volt-table">
+                        <tr>
+                            <td><b>Busbar A</b><br>${v.busA || 0} kV</td>
+                            <td><b>Busbar B</b><br>${v.busB || 0} kV</td>
+                            <td><b>Teg IBT 1</b><br>${v.ibt1 || 0} kV</td>
+                            <td><b>Teg IBT 2</b><br>${v.ibt2 || 0} kV</td>
+                            <td><b>Teg IBT 3</b><br>${v.ibt3 || 0} kV</td>
+                            <td><b>Teg IBT 4</b><br>${v.ibt4 || 0} kV</td>
+                        </tr>
+                    </table>
+
+                    <h4>Pembebanan</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Peralatan</th>
+                                <th style="text-align:right">Ampere</th>
+                                <th style="text-align:right">MW</th>
+                                <th style="text-align:right">MVar</th>
+                                <th style="text-align:right">Beban (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>${bayRowsHtml}</tbody>
+                    </table>
+                </body></html>
+            `);
+            win.document.close();
+            win.print();
+        }
+
+        function editLoadRecord(index) {
+            const rec = records[index];
+            switchTab('input');
+            document.getElementById('edit-load-index').value = index;
+            document.getElementById('input-date').value = cleanDateStr(rec.date);
+            document.getElementById('input-hour').value = rec.hour;
+            document.getElementById('input-jargi1').value = rec.jargi1 || '';
+            document.getElementById('input-jargi2').value = rec.jargi2 || '';
+            buildBayInputs(rec.bays);
+            const v = rec.voltage || {};
+            document.getElementById('volt-busA').value = v.busA || '';
+            document.getElementById('volt-busB').value = v.busB || '';
+            document.getElementById('volt-ibt1').value = v.ibt1 || '';
+            document.getElementById('volt-ibt2').value = v.ibt2 || '';
+            document.getElementById('volt-ibt3').value = v.ibt3 || '';
+            document.getElementById('volt-ibt4').value = v.ibt4 || '';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteLoadRecord(index) {
+            if(confirm("Hapus data pencatatan beban ini?")) {
+                records.splice(index, 1);
+                localStorage.setItem('gandul_records', JSON.stringify(records));
+                renderAllViews();
+                showToast("Data berhasil dihapus.");
+            }
+        }
+
+        function handleManuverSubmit(e) {
+            e.preventDefault();
+            const date = cleanDateStr(document.getElementById('man-date').value);
+            const jenis = document.getElementById('man-jenis').value;
+            const bay = document.getElementById('man-bay').value;
+            const desc = document.getElementById('man-desc').value;
+            const pm = document.getElementById('man-pm').value;
+            const work = document.getElementById('man-work').value;
+            const k3 = document.getElementById('man-k3').value;
+            const operator = document.getElementById('man-operator').value;
+            const dispa = document.getElementById('man-dispa').value;
+
+            if(currentManuverSteps.length === 0) {
+                showToast("Tambahkan minimal 1 langkah manuver!");
+                return;
+            }
+
+            const payload = {
+                type: 'manuver',
+                id: Date.now(),
+                date, jenis, bay, desc, pm, work, k3, operator, dispa,
+                steps: currentManuverSteps
+            };
+
+            manuverRecords.unshift(payload);
+            localStorage.setItem('gandul_manuver', JSON.stringify(manuverRecords));
+
+            if(FIXED_GSCRIPT_URL) {
+                fetch(FIXED_GSCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).catch(err => console.log(err));
+            }
+
+            showToast("Catatan manuver berhasil disimpan & dikirim ke Spreadsheet!");
+            document.getElementById('manuverForm').reset();
+            document.getElementById('man-date').value = getLocalDateString();
+            loadDefaultManuverSteps();
+            renderAllViews();
+            switchTab('riwayat-manuver');
+        }
+
+        function renderManuverHistory() {
+            const list = document.getElementById('manuver-history-list');
+            if(!list) return;
+            const query = (document.getElementById('search-manuver')?.value || '').toLowerCase();
+            const sortedManuver = [...manuverRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const filtered = sortedManuver.filter(m => m.desc.toLowerCase().includes(query) || m.bay.toLowerCase().includes(query) || cleanDateStr(m.date).includes(query));
+
+            if(filtered.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Belum ada riwayat manuver tersimpan.</p>`;
+                return;
+            }
+
+            list.innerHTML = '';
+            filtered.forEach(m => {
+                let longDate = formatIndonesianDate(cleanDateStr(m.date));
+                let stepsHtml = '';
+
+                let stepsArr = parseStepsData(m.steps);
+
+                if(stepsArr && Array.isArray(stepsArr) && stepsArr.length > 0) {
+                    stepsArr.forEach((s, idx) => {
+                        let timeDisplay = s.time ? `${s.time}` : '-';
+                        stepsHtml += `
+                            <div class="flex items-center justify-between py-2 px-3 bg-white border border-slate-100 rounded-lg text-xs font-mono mb-1.5 shadow-sm">
+                                <div class="flex items-center gap-3">
+                                    <span class="bg-blue-100 text-blue-800 font-bold px-2 py-0.5 rounded">Langkah ${idx + 1}</span>
+                                    <span class="text-slate-600 font-semibold bg-slate-100 px-2 py-0.5 rounded">${timeDisplay}</span>
+                                    <strong class="text-slate-900">${s.equip || '-'}</strong>
+                                </div>
+                                <div class="space-x-2">
+                                    <span class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded">${s.status || ''}</span>
+                                    <span class="bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">${s.ctrl || ''}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    stepsHtml = `<p class="text-xs text-slate-400 italic">Tidak ada rincian langkah.</p>`;
+                }
+
+                list.innerHTML += `
+                    <div class="border rounded-2xl bg-slate-50 shadow-sm overflow-hidden transition mb-3">
+                        <div onclick="toggleManuverDetail('${m.id}')" class="p-4 flex justify-between items-center cursor-pointer hover:bg-slate-100 flex-wrap gap-2">
+                            <div class="flex items-center gap-3">
+                                <span class="bg-plnBlue text-white text-xs font-bold px-3 py-1 rounded-full">${longDate}</span>
+                                <div>
+                                    <span class="font-bold text-xs bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded mr-2">${m.bay || '-'}</span>
+                                    <span class="font-bold text-sm text-slate-800">${m.desc || '-'}</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="event.stopPropagation(); printManuverPDF('${m.id}')" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow"><i class="fa-solid fa-file-pdf"></i> Cetak</button>
+                                <button onclick="event.stopPropagation(); copyWhatsAppText('${m.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow"><i class="fa-brands fa-whatsapp"></i> WA</button>
+                                <button onclick="event.stopPropagation(); deleteManuver('${m.id}')" class="text-red-500 hover:text-red-700 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <div id="detail-${m.id}" class="hidden border-t bg-white p-4 space-y-3">
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs bg-slate-50 p-3 rounded-xl border">
+                                <div><strong>PM:</strong> ${m.pm || '-'}</div>
+                                <div><strong>Pengawas Pekerjaan:</strong> ${m.work || '-'}</div>
+                                <div><strong>Pengawas K3:</strong> ${m.k3 || '-'}</div>
+                                <div><strong>Pelaksana:</strong> ${m.operator || '-'}</div>
+                                <div><strong>Dispatcher:</strong> ${m.dispa || '-'}</div>
+                            </div>
+                            <div class="border p-3 rounded-xl bg-slate-50 space-y-1">
+                                <p class="text-[11px] font-bold text-slate-400 uppercase mb-2"><i class="fa-solid fa-list-ol mr-1"></i> Rincian Langkah Manuver:</p>
+                                <div class="space-y-1">${stepsHtml}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleManuverDetail(id) {
+            const el = document.getElementById(`detail-${id}`);
+            if(el) el.classList.toggle('hidden');
+        }
+
+        function copyWhatsAppText(id) {
+            const m = manuverRecords.find(item => String(item.id) === String(id));
+            if(!m) return;
+            let formattedDate = formatIndonesianDate(cleanDateStr(m.date));
+            let text = `*INFO MANUVER GITET GANDUL*\n\n${formattedDate}\n${m.desc}\n\nPM : ${m.pm}\nPel. : ${m.operator}\nDispa : ${m.dispa}\n\n`;
+            
+            let stepsArr = parseStepsData(m.steps);
+            if(Array.isArray(stepsArr)) {
+                stepsArr.forEach(s => { 
+                    let t = s.time ? `${s.time} ` : '';
+                    text += `[${t.trim()}] ${s.equip} - ${s.status} ${s.ctrl}\n`; 
+                });
+            }
+            navigator.clipboard.writeText(text.trim());
+            showToast("Format teks WhatsApp berhasil disalin!");
+        }
+
+        function printManuverPDF(id) {
+            const m = manuverRecords.find(item => String(item.id) === String(id));
+            if(!m) return;
+            let longDate = formatIndonesianDate(cleanDateStr(m.date));
+            let stepsHtml = '';
+            
+            let stepsArr = parseStepsData(m.steps);
+            if(Array.isArray(stepsArr)) {
+                stepsArr.forEach((s, idx) => { stepsHtml += `<tr><td style="border:1px solid #cbd5e1; padding:6px; text-align:center; font-weight:bold;">${idx + 1}</td><td style="border:1px solid #cbd5e1; padding:6px; text-align:center; font-family:monospace;">${s.time || '-'}</td><td style="border:1px solid #cbd5e1; padding:6px; font-family:monospace;">${s.equip}</td><td style="border:1px solid #cbd5e1; padding:6px; font-weight:bold; text-align:center;">${s.status}</td><td style="border:1px solid #cbd5e1; padding:6px; font-weight:bold; text-align:center;">${s.ctrl}</td></tr>`; });
+            }
+            const win = window.open('', '_blank');
+            win.document.write(`<html><head><title>Lembar Manuver - ${longDate}</title><style>body{font-family:sans-serif; padding:20px;} table{width:100%; border-collapse:collapse; margin-top:15px; font-size:12px;} th{background:#1e3a8a; color:white; padding:8px; text-align:left;}</style></head><body><h2>INFO MANUVER GITET GANDUL</h2><p><b>Tanggal:</b> ${longDate} | <b>Bay:</b> ${m.bay}<br><b>Kegiatan:</b> ${m.desc}</p><table><thead><tr><th style="width:40px; text-align:center;">No</th><th style="width:70px; text-align:center;">Jam</th><th>Peralatan</th><th style="width:90px; text-align:center;">Status</th><th style="width:90px; text-align:center;">Kontrol</th></tr></thead><tbody>${stepsHtml}</tbody></table></body></html>`);
+            win.document.close();
+            win.print();
+        }
+
+        function deleteManuver(id) {
+            if(confirm("Hapus catatan manuver ini?")) {
+                manuverRecords = manuverRecords.filter(m => String(m.id) !== String(id));
+                localStorage.setItem('gandul_manuver', JSON.stringify(manuverRecords));
+                renderAllViews();
+                showToast("Catatan manuver dihapus.");
+            }
+        }
+
+        function renderDashboard() {
+            const totalRecsEl = document.getElementById('stat-total-records');
+            if(totalRecsEl) totalRecsEl.innerText = records.length;
+            
+            const manuverRecsEl = document.getElementById('stat-manuver-records');
+            if(manuverRecsEl) manuverRecsEl.innerText = manuverRecords.length;
+            
+            const currentMonth = getLocalMonthString();
+            const monthRecsEl = document.getElementById('stat-month-records');
+            if(monthRecsEl) monthRecsEl.innerText = records.filter(r => r.date && r.date.startsWith(currentMonth)).length;
+
+            const recentList = document.getElementById('dashboard-recent-list');
+            if(recentList) {
+                if(records.length === 0) {
+                    recentList.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Belum ada catatan beban.</p>`;
+                } else {
+                    recentList.innerHTML = '';
+                    const sorted = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
+                    sorted.slice(0, 3).forEach(r => {
+                        let cleanDate = cleanDateStr(r.date);
+                        let longDate = formatIndonesianDate(cleanDate);
+                        const hourTab = `jam${r.hour.replace('.','')}`;
+                        
+                        // Perbaikan Lihat Detail agar otomatis set filter tanggal & pindah tab tanpa blank
+                        recentList.innerHTML += `
+                            <div class="flex justify-between items-center p-3 bg-slate-50 border rounded-xl text-xs">
+                                <div>
+                                    <span class="font-bold text-plnBlue">${longDate} (Jam ${r.hour})</span>
+                                    <span class="text-slate-500 ml-2">Jargi: ${r.jargi1 || '-'} & ${r.jargi2 || '-'}</span>
+                                </div>
+                                <button onclick="goToDetailTab('${hourTab}', '${cleanDate}')" class="text-plnSky font-bold hover:underline flex items-center gap-1">Lihat Detail <i class="fa-solid fa-arrow-right"></i></button>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            const recentManuver = document.getElementById('dashboard-recent-manuver');
+            if(recentManuver) {
+                if(manuverRecords.length === 0) {
+                    recentManuver.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Belum ada catatan manuver.</p>`;
+                } else {
+                    recentManuver.innerHTML = '';
+                    const sortedMan = [...manuverRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
+                    sortedMan.slice(0, 2).forEach(m => {
+                        let longDate = formatIndonesianDate(cleanDateStr(m.date));
+                        recentManuver.innerHTML += `
+                            <div class="flex items-center justify-between p-3 bg-amber-50/50 border border-amber-200 rounded-xl text-xs">
+                                <div>
+                                    <span class="font-bold text-amber-900">${longDate} - ${m.bay}</span>
+                                    <span class="text-slate-600 block truncate max-w-xs">${m.desc}</span>
+                                </div>
+                                <button onclick="switchTab('riwayat-manuver')" class="text-amber-700 font-bold hover:underline flex items-center gap-1">Lihat <i class="fa-solid fa-arrow-right"></i></button>
+                            </div>
+                        `;
+                    });
+                }
+            }
+        }
+
+        function goToDetailTab(tabId, dateStr) {
+            switchTab(tabId);
+            const hourMap = { 'jam10': '10.00', 'jam14': '14.00', 'jam19': '19.00' };
+            const hourVal = hourMap[tabId];
+            const searchInputId = `search-${tabId}`;
+            const searchInput = document.getElementById(searchInputId);
+            if(searchInput) {
+                searchInput.value = dateStr;
+            }
+            if(hourVal) {
+                renderHistory(hourVal);
+            }
+        }
+
+        function renderMonthlyPeakReport() {
+            const monthInput = document.getElementById('filter-month').value;
+            const tbody = document.getElementById('monthly-peak-tbody');
+            if(!tbody) return;
+
+            const monthlyRecords = records.filter(r => r.date && r.date.startsWith(monthInput));
+            let htmlRows = '';
+
+            bayConfigs.forEach(bay => {
+                let peak10 = { date: '-', ampere: 0, mw: 0, mvar: 0 };
+                let peak14 = { date: '-', ampere: 0, mw: 0, mvar: 0 };
+                let peak19 = { date: '-', ampere: 0, mw: 0, mvar: 0 };
+
+                monthlyRecords.forEach(r => {
+                    if(r.bays && r.bays[bay.name]) {
+                        const bData = r.bays[bay.name];
+                        const amp = parseFloat(bData.ampere) || 0;
+                        const mw = parseFloat(bData.mw) || 0;
+                        const mvar = parseFloat(bData.mvar) || 0;
+
+                        if(r.hour === '10.00' && amp > peak10.ampere) {
+                            peak10 = { date: cleanDateStr(r.date).slice(-5), ampere: amp, mw: mw, mvar: mvar };
+                        }
+                        if(r.hour === '14.00' && amp > peak14.ampere) {
+                            peak14 = { date: cleanDateStr(r.date).slice(-5), ampere: amp, mw: mw, mvar: mvar };
+                        }
+                        if(r.hour === '19.00' && amp > peak19.ampere) {
+                            peak19 = { date: cleanDateStr(r.date).slice(-5), ampere: amp, mw: mw, mvar: mvar };
+                        }
+                    }
+                });
+
+                let maxMw = Math.max(peak10.mw, peak14.mw, peak19.mw);
+                let mwDisplay = maxMw > 0 ? `<strong class="text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200">${maxMw} MW</strong>` : '-';
+
+                htmlRows += `
+                    <tr class="hover:bg-slate-50 border-b">
+                        <td class="p-3 font-bold text-slate-800">${bay.name}</td>
+                        <td class="p-3 text-center font-mono font-semibold text-slate-600">${bay.maxA} A</td>
+                        
+                        <td class="p-2 border-l bg-slate-50/50">${peak10.date}</td>
+                        <td class="p-2 text-right font-mono font-bold text-plnBlue bg-slate-50/50">${peak10.ampere ? peak10.ampere + ' A' : '-'}</td>
+                        <td class="p-2 text-right font-mono bg-slate-50/50">${peak10.mw ? peak10.mw : '-'}</td>
+                        <td class="p-2 text-right font-mono border-r bg-slate-50/50">${peak10.mvar ? peak10.mvar : '-'}</td>
+
+                        <td class="p-2 bg-white">${peak14.date}</td>
+                        <td class="p-2 text-right font-mono font-bold text-plnBlue bg-white">${peak14.ampere ? peak14.ampere + ' A' : '-'}</td>
+                        <td class="p-2 text-right font-mono bg-white">${peak14.mw ? peak14.mw : '-'}</td>
+                        <td class="p-2 text-right font-mono border-r bg-white">${peak14.mvar ? peak14.mvar : '-'}</td>
+
+                        <td class="p-2 bg-slate-50/50">${peak19.date}</td>
+                        <td class="p-2 text-right font-mono font-bold text-plnBlue bg-slate-50/50">${peak19.ampere ? peak19.ampere + ' A' : '-'}</td>
+                        <td class="p-2 text-right font-mono bg-slate-50/50">${peak19.mw ? peak19.mw : '-'}</td>
+                        <td class="p-2 text-right font-mono border-r bg-slate-50/50">${peak19.mvar ? peak19.mvar : '-'}</td>
+
+                        <td class="p-3 text-center bg-amber-50/30">${mwDisplay}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = htmlRows || `<tr><td colspan="15" class="text-center py-6 text-slate-400">Tidak ada data untuk bulan ini.</td></tr>`;
+        }
+    </script>
+</body>
+</html>
