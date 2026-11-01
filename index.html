@@ -906,7 +906,8 @@
                     clearTimeout(timeoutId);
                     let hasNewData = false;
 
-                    const newRecords = (data.records || []).map(r => {
+                    const newRecords = (data.records || []).map((r, idx) => {
+                        if (!r.id) r.id = 'rec_' + idx + '_' + Date.now();
                         r.date = cleanDateStr(r.date);
                         if(r.bays) {
                             for(let bName in r.bays) {
@@ -926,7 +927,8 @@
                         hasNewData = true;
                     }
 
-                    const newMan = (data.manuverRecords || []).map(m => {
+                    const newMan = (data.manuverRecords || []).map((m, idx) => {
+                        if (!m.id) m.id = 'man_' + idx + '_' + Date.now();
                         m.date = cleanDateStr(m.date);
                         m.steps = parseStepsData(m.steps);
                         return m;
@@ -1232,7 +1234,7 @@
             const ibt4 = document.getElementById('volt-ibt4').value;
 
             const payload = {
-                id: editIndex !== '' ? records[editIndex].id : Date.now(),
+                id: editIndex !== '' ? records[editIndex].id : 'rec_' + Date.now(),
                 date, hour, jargi1, jargi2,
                 bays: baysData,
                 voltage: { busA: parseFloat(busA) || 0, busB: parseFloat(busB) || 0, ibt1: parseFloat(ibt1) || 0, ibt2: parseFloat(ibt2) || 0, ibt3: parseFloat(ibt3) || 0, ibt4: parseFloat(ibt4) || 0 }
@@ -1277,6 +1279,7 @@
 
             const selectedDate = document.getElementById(searchId)?.value || '';
             
+            // Urutkan dari yang terbaru ke terlama
             const sortedRecords = [...records].sort((a, b) => new Date(b.date) - new Date(a.date));
             const filtered = sortedRecords.filter(r => {
                 if(r.hour !== hourFilter) return false;
@@ -1314,7 +1317,8 @@
                     `;
                 }
 
-                const originalIndex = records.findIndex(r => r.id === rec.id);
+                // Cari indeks asli berdasarkan ID unik (rec.id) agar tepat sasaran
+                const originalIndex = records.findIndex(r => String(r.id) === String(rec.id));
 
                 htmlCards += `
                     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mb-6 transition hover:shadow-md">
@@ -1492,7 +1496,7 @@
 
             const payload = {
                 type: 'manuver',
-                id: Date.now(),
+                id: 'man_' + Date.now(),
                 date, jenis, bay, desc, pm, work, k3, operator, dispa,
                 steps: currentManuverSteps
             };
@@ -1516,6 +1520,8 @@
             const list = document.getElementById('manuver-history-list');
             if(!list) return;
             const query = (document.getElementById('search-manuver')?.value || '').toLowerCase();
+            
+            // Urutkan dari yang terbaru ke terlama
             const sortedManuver = [...manuverRecords].sort((a, b) => new Date(b.date) - new Date(a.date));
             const filtered = sortedManuver.filter(m => m.desc.toLowerCase().includes(query) || m.bay.toLowerCase().includes(query) || cleanDateStr(m.date).includes(query));
 
