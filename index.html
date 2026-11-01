@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pencatatan Beban & Manuver GITET 500 kV Gandul</title>
-    <!-- Favicon / Logo Tab -->
     <link rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/bolt.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -748,6 +747,7 @@
 
         let currentManuverSteps = [];
 
+        // Masukkan URL Google Apps Script terbaru Anda di sini
         const FIXED_GSCRIPT_URL = "https://script.google.com/macros/s/AKfycbx1M5ZTOhdByjgEjN74Yfh9KkAenGeIPla7RJwKRiBBKqGneQLS1Th8rzv2xvPlyjqFBw/exec";
 
         let records = JSON.parse(localStorage.getItem('gandul_records') || '[]');
@@ -893,6 +893,7 @@
             return [];
         }
 
+        // Sinkronisasi mutlak sesuai Drive tanpa caching tertinggal
         function loadDataFromCloudSafe(isSilent = false) {
             if(!FIXED_GSCRIPT_URL) return;
 
@@ -905,38 +906,36 @@
                     clearTimeout(timeoutId);
                     let hasNewData = false;
 
-                    if(data.records && data.records.length > 0) {
-                        const newRecords = data.records.map(r => {
-                            r.date = cleanDateStr(r.date);
-                            if(r.bays) {
-                                for(let bName in r.bays) {
-                                    const cfg = bayConfigs.find(c => c.name === bName);
-                                    if(cfg && cfg.maxA > 0) {
-                                        let amp = parseFloat(r.bays[bName].ampere) || 0;
-                                        r.bays[bName].percent = ((amp / cfg.maxA) * 100).toFixed(2) + '%';
-                                    }
+                    const newRecords = (data.records || []).map(r => {
+                        r.date = cleanDateStr(r.date);
+                        if(r.bays) {
+                            for(let bName in r.bays) {
+                                const cfg = bayConfigs.find(c => c.name === bName);
+                                if(cfg && cfg.maxA > 0) {
+                                    let amp = parseFloat(r.bays[bName].ampere) || 0;
+                                    r.bays[bName].percent = ((amp / cfg.maxA) * 100).toFixed(2) + '%';
                                 }
                             }
-                            return r;
-                        });
-                        if(JSON.stringify(newRecords) !== JSON.stringify(records)) {
-                            records = newRecords;
-                            localStorage.setItem('gandul_records', JSON.stringify(records));
-                            hasNewData = true;
                         }
+                        return r;
+                    });
+                    
+                    if(JSON.stringify(newRecords) !== JSON.stringify(records)) {
+                        records = newRecords;
+                        localStorage.setItem('gandul_records', JSON.stringify(records));
+                        hasNewData = true;
                     }
 
-                    if(data.manuverRecords && data.manuverRecords.length > 0) {
-                        const newMan = data.manuverRecords.map(m => {
-                            m.date = cleanDateStr(m.date);
-                            m.steps = parseStepsData(m.steps);
-                            return m;
-                        });
-                        if(JSON.stringify(newMan) !== JSON.stringify(manuverRecords)) {
-                            manuverRecords = newMan;
-                            localStorage.setItem('gandul_manuver', JSON.stringify(manuverRecords));
-                            hasNewData = true;
-                        }
+                    const newMan = (data.manuverRecords || []).map(m => {
+                        m.date = cleanDateStr(m.date);
+                        m.steps = parseStepsData(m.steps);
+                        return m;
+                    });
+
+                    if(JSON.stringify(newMan) !== JSON.stringify(manuverRecords)) {
+                        manuverRecords = newMan;
+                        localStorage.setItem('gandul_manuver', JSON.stringify(manuverRecords));
+                        hasNewData = true;
                     }
 
                     if(hasNewData || !isSilent) {
@@ -1657,7 +1656,6 @@
                         let longDate = formatIndonesianDate(cleanDate);
                         const hourTab = `jam${r.hour.replace('.','')}`;
                         
-                        // Perbaikan Lihat Detail agar otomatis set filter tanggal & pindah tab tanpa blank
                         recentList.innerHTML += `
                             <div class="flex justify-between items-center p-3 bg-slate-50 border rounded-xl text-xs">
                                 <div>
